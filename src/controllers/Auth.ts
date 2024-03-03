@@ -2,7 +2,7 @@ import { Login, Register, UpdatedPassword } from "../models/Auth";
 import { ServiceAuth } from "../services/Auth";
 import { BodyParams, Controller, Post, Description, Delete, QueryParams, Email, HeaderParams } from "@tsed/common";
 
-@Controller('/auth')
+@Controller('/api/auth')
 export class AuthController {
 
   @Post("/login")

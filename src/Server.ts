@@ -26,7 +26,7 @@ const rootDir = __dirname;
     requestFields: ["reqId", "method", "url", "headers", "query", "params", "duration"]
   },
   mount: {
-    "/auth": [`${rootDir}/controllers/Auth.ts`],
+    "/api/auth": [`${rootDir}/controllers/Auth.ts`],
   },
   swagger: [
     {

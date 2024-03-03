@@ -1,9 +1,15 @@
 import * as EmailValidator from 'email-validator';
+import jwt from 'jsonwebtoken';
 import { NAME_TABLE_DB } from "../constants";
 import { Login, Register, UpdatedPassword } from "../models/Auth";
 import { Functions } from "../functions";
 import { User } from "./User";
 import { Mail } from "./Mail";
+
+import { getEnv } from '../config/env';
+
+const { JWT_KEY } = getEnv();
+
 
 export class ServiceAuth {
 
@@ -30,9 +36,10 @@ export class ServiceAuth {
         if (!validPassword) {
           throw new Error("invalid password");
         }
-        const token = Functions.generateRandomToken(20);
-        await this.saveSession(user.user_id, token);
-        return { status: 200, session: token };
+
+        const session = this.generateSession({ userId: user.user_id });
+
+        return { status: 200, session };
       } else {
         throw new Error("email not found");
       }
@@ -77,9 +84,9 @@ export class ServiceAuth {
       }
       const user = await User.save(data);
       if (user.insertId) {
-        const token = Functions.generateRandomToken(20);
-        await this.saveSession(user.insertId, token);
-        return { status: 200, session: token };
+        const session = this.generateSession({ userId: user.insertId });
+
+        return { status: 200, session };
       } else {
         throw new Error("Error saving to DB");
       }
@@ -184,22 +191,9 @@ export class ServiceAuth {
   }
 
 
-  /**
-   * Salvando nova sessao
-   * @param user 
-   * @param token 
-   * @returns 
-   */
-  static async saveSession(user: number, token: string,): Promise<any> {
+  static generateSession(payload: any) {
     try {
-      const db = global.database;
-      const data = {
-        [NAME_TABLE_DB.SESSION.COLUMNS.USER]: user,
-        [NAME_TABLE_DB.SESSION.COLUMNS.TOKEN]: token,
-        [NAME_TABLE_DB.SESSION.COLUMNS.DATE]: new Date(),
-        [NAME_TABLE_DB.SESSION.COLUMNS.STATUS]: 1
-      };
-      return await db.insert(NAME_TABLE_DB.SESSION.NAME, data);
+      return jwt.sign(payload, JWT_KEY, { expiresIn: '7d' });
     } catch (error) {
       throw error;
     }
