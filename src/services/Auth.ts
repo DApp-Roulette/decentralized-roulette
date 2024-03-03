@@ -13,6 +13,20 @@ const { JWT_KEY } = getEnv();
 
 export class ServiceAuth {
 
+  static async authorization(session: string) {
+    try {
+      const token = session?.split(' ')[1];
+      var decoded: any = jwt.verify(token, JWT_KEY);
+      let user = await User.byId(decoded?.userId);
+      if (user && user.length > 0) {
+        user = user[0];
+        return { status: 200, user: { id: user.user_id, name: user.user_name } };
+      }
+    } catch (error) {
+      return { status: 500, message: error.message };
+    }
+  }
+
   /**
    * Autentica um usuário com base nas informações fornecidas.
    *

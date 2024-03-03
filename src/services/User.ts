@@ -18,6 +18,15 @@ export class User {
     }
   }
 
+  static async byId(id: number): Promise<any> {
+    try {
+      const db = global.database;
+      return await db.select(NAME_TABLE_DB.USER.NAME, [id], [NAME_TABLE_DB.USER.COLUMNS.ID + "=?"]);
+    } catch (error) {
+      throw error;
+    }
+  }
+
   /**
    * Salvando o usuario no Banco de dados
    * @param data dados do usuario

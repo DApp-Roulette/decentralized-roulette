@@ -1,9 +1,16 @@
 import { Login, Register, UpdatedPassword } from "../models/Auth";
 import { ServiceAuth } from "../services/Auth";
-import { BodyParams, Controller, Post, Description, Delete, QueryParams, Email, HeaderParams } from "@tsed/common";
+import { BodyParams, Controller, Post, Description, Delete, QueryParams, Email, HeaderParams, Get } from "@tsed/common";
 
 @Controller('/api/auth')
 export class AuthController {
+
+  @Get("/session")
+  @Description("Endpoint para validar sessão ")
+  async Session(@HeaderParams("Authorization") session: string) {
+    return await ServiceAuth.authorization(session);
+  }
+
 
   @Post("/login")
   @Description("Endpoint para autenticação de login")
@@ -17,18 +24,18 @@ export class AuthController {
     return await ServiceAuth.register(data);
   }
 
-  @Post("/requestNewPassword")
+  @Post("/forgot-password")
   @Description("Endpoint para solicitar codigo redefinir senha")
   async RequestNewPassword(@BodyParams("email") email: string) {
     return await ServiceAuth.requestNewPassword(email);
   }
 
-  @Post("/updatePassword")
+  @Post("/update-password")
   @Description("Endpoint para solicitar codigo redefinir senha")
-  async UpdatePassword(@BodyParams() data: UpdatedPassword, ) {
+  async UpdatePassword(@BodyParams() data: UpdatedPassword,) {
     return await ServiceAuth.updatePassword(data);
   }
-  
+
 
   @Delete("/logout")
   @Description("Endpoint para criar uma conta")
