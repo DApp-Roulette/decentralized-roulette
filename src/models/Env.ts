@@ -7,5 +7,6 @@ export interface Env {
   TOKEN_SEND_GRID: string,
   EMAIL_NOTIFICATIONS: string,
   SYSTEM_NAME: string,
-  JWT_KEY: string
+  JWT_KEY: string,
+  PORT_SOCKET: string
 }
