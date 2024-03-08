@@ -1,19 +1,23 @@
+import { $log } from "@tsed/common";
 import { PlatformExpress } from "@tsed/platform-express";
-import { Server } from "./Server";
-import Database from "./database";
-import wss from "./ServerSocket";
+import jwt from 'jsonwebtoken';
 import * as WebSocket from "ws";
 
-declare global {
-  var database: Database;
-  var clientsMapWebSocket: any;
-}
+import { Server } from "./Server";
+import { connect } from "./database";
+import synchronizeDB from "./database/Synchronize";
+
+import wss from "./ServerSocket";
+
+import { Message } from "./services/Message";
+
+import { getEnv } from './config/env';
+
+const { JWT_KEY } = getEnv();
 
 const clients: WebSocket[] = [];
 
 async function socket() {
-
-  const clientsMapWebSocket = new Map<string, WebSocket>();
 
   wss.on("connection", (ws: WebSocket, req: any) => {
 
@@ -21,41 +25,61 @@ async function socket() {
 
     clients.push(ws);
 
-    console.log("Cliente conectado ao servidor WebSocket");
-
-    ws.on("message", (message: WebSocket.Data) => {
-      if (message instanceof Buffer) {
-        message = JSON.parse(message?.toString());
-      }
-
-      const senderIndex = clients.indexOf(ws);
-
-      clients.forEach((client, index) => {
-        if (index !== senderIndex) {
-          client.send(JSON.stringify({ event: "message", message }));
+    ws.on("message", async (message: any) => {
+      if (session) {
+        try {
+          var decoded: any = jwt.verify(session, JWT_KEY);
+          if (message instanceof Buffer) {
+            message = JSON.parse(message?.toString());
+          }
+          if (message && message?.message) {
+            await Message.save({ user: decoded.userId, content: message?.message });
+            const senderIndex = clients.indexOf(ws);
+            clients.forEach((client, index) => {
+              if (index !== senderIndex) {
+                client.send(JSON.stringify({ event: "message", message }));
+              }
+            });
+          }
+        } catch (error) {
+          $log.error(error.mensagem);
         }
-      });
-      
+      }
     });
 
     ws.on("close", () => {
       console.log("Cliente desconectado do servidor WebSocket");
-      global.clientsMapWebSocket = clientsMapWebSocket;
     });
 
   });
 
 
   function enviarEventosLoop() {
-    sendToAll(JSON.stringify({ event: "roulette", name: 'start' }));
+    // Evento: Liberado para apostar
+    sendToAll(JSON.stringify({ event: "roulette", name: 'liberado', status: 'apostar' }));
+
     setTimeout(() => {
-      const number = Math.floor(Math.random() * 37);
-      sendToAll(JSON.stringify({ event: "roulette", name: 'stop', number }));
-      setTimeout(enviarEventosLoop, 9000);
-    }, 5000);
+      // Evento: Encerrado para apostar
+      sendToAll(JSON.stringify({ event: "roulette", name: 'encerrado', status: 'apostar' }));
+
+      setTimeout(() => {
+        // Evento: Começou a rodada
+        sendToAll(JSON.stringify({ event: "roulette", name: 'comecou', status: 'rodada' }));
+
+        setTimeout(() => {
+          const number = Math.floor(Math.random() * 37);
+
+          // Evento: Rodada finalizada
+          sendToAll(JSON.stringify({ event: "roulette", name: 'finalizada', status: 'rodada', number }));
+
+          setTimeout(enviarEventosLoop, 12000); // Reiniciar após 12 segundos
+        }, 5000); // Tempo de espera após a rodada antes de reiniciar
+      }, 10000); // Tempo de espera após liberar apostas antes de encerrar
+    }, 8000); // Tempo de espera antes de liberar apostas
   }
 
   enviarEventosLoop();
+
 
 
 }
@@ -73,8 +97,12 @@ async function bootstrap() {
     const platform = await PlatformExpress.bootstrap(Server);
 
     await platform.listen();
+
     await socket();
-    global.database = new Database();
+
+    await connect();
+    
+    await synchronizeDB();
 
   } catch (error) {
     console.error("error status server", error)

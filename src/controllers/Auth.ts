@@ -5,37 +5,23 @@ import { BodyParams, Controller, Post, Description, Delete, QueryParams, Email, 
 @Controller('/api/auth')
 export class AuthController {
 
+  @Get("/start")
+  @Description("Endpoint to create a session")
+  async Start() {
+    return await ServiceAuth.start();
+  }
+
   @Get("/session")
-  @Description("Endpoint para validar sessão ")
+  @Description("Endpoint to validate session")
   async Session(@HeaderParams("Authorization") session: string) {
     return await ServiceAuth.authorization(session);
   }
 
-
   @Post("/login")
-  @Description("Endpoint para autenticação de login")
+  @Description("Endpoint for login authentication")
   async Auth(@BodyParams() data: Login) {
     return await ServiceAuth.login(data);
   }
-
-  @Post("/register")
-  @Description("Endpoint para criar uma conta")
-  async Register(@BodyParams() data: Register) {
-    return await ServiceAuth.register(data);
-  }
-
-  @Post("/forgot-password")
-  @Description("Endpoint para solicitar codigo redefinir senha")
-  async RequestNewPassword(@BodyParams("email") email: string) {
-    return await ServiceAuth.requestNewPassword(email);
-  }
-
-  @Post("/update-password")
-  @Description("Endpoint para solicitar codigo redefinir senha")
-  async UpdatePassword(@BodyParams() data: UpdatedPassword,) {
-    return await ServiceAuth.updatePassword(data);
-  }
-
 
   @Delete("/logout")
   @Description("Endpoint para criar uma conta")

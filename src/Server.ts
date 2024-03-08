@@ -27,6 +27,7 @@ const rootDir = __dirname;
   },
   mount: {
     "/api/auth": [`${rootDir}/controllers/Auth.ts`],
+    "/api/message": [`${rootDir}/controllers/Message.ts`],
   },
   swagger: [
     {

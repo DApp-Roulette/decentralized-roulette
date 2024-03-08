@@ -1,10 +1,9 @@
 import * as EmailValidator from 'email-validator';
 import jwt from 'jsonwebtoken';
-import { NAME_TABLE_DB } from "../constants";
+
 import { Login, Register, UpdatedPassword } from "../models/Auth";
 import { Functions } from "../functions";
 import { User } from "./User";
-import { Mail } from "./Mail";
 
 import { getEnv } from '../config/env';
 
@@ -12,6 +11,21 @@ const { JWT_KEY } = getEnv();
 
 
 export class ServiceAuth {
+
+  /**
+    * Starts the session.
+    * @returns {Object} An object containing the status, message, and session.
+    */
+  static async start(): Promise<object> {
+    try {
+      const session = Functions.generateRandomToken(20);
+      const message = `Sign this message to validate your session\nSession:${session}`;
+      return { status: 200, message, session };
+    } catch (error) {
+      return { status: 500, message: error.message };
+    }
+  }
+
 
   static async authorization(session: string) {
     try {
@@ -33,17 +47,9 @@ export class ServiceAuth {
    * @param data - As informações de autenticação do usuário.
    * @returns Um objeto contendo o status da autenticação, uma possível mensagem de erro e uma sessão (se a autenticação for bem-sucedida).
    */
-  static async login(data: Login): Promise<{
-    status: number;
-    session: string;
-    message?: string;
-  } | {
-    status: number;
-    message: string;
-    session?: string;
-  }> {
+  static async login(data: Login) {
     try {
-      const response = await User.byEmail(data.email);
+      const response = await User.byEmail(data.address);
       if (response && response.length > 0) {
         const user = response[0];
         const validPassword = await Functions.comparePasswords(data.password, user.user_password);
@@ -68,15 +74,7 @@ export class ServiceAuth {
    * @param data dados de cadastro do usuario
    * @returns caso a conta seja criado com sucesso faz login e retorna status e sessao
    */
-  static async register(data: Register): Promise<{
-    status: number;
-    session: string;
-    message?: string;
-  } | {
-    status: number;
-    message: string;
-    session?: string;
-  }> {
+  static async register(data: Register) {
     try {
       if (!data.name) {
         throw new Error("enter name first");
@@ -106,101 +104,6 @@ export class ServiceAuth {
       }
     } catch (error) {
       return { status: 500, message: error.message };
-    }
-  }
-
-
-  /**
-   *  Faz logout 
-   * @param session token da sessao
-   * @returns status e mensagem 
-   */
-  static async logout(session: string): Promise<{ status: number; message: string; }> {
-    try {
-      const response = await this.updateStatusSession(session, 2);
-      if (response) {
-        return { status: 200, message: "logout successfully" };
-      } else {
-        throw new Error("Error when logging out");
-      }
-    } catch (error) {
-      return { status: 500, message: error.message };
-    }
-  }
-
-
-  /**
-   * Envia codigo para redefinir a senha da conta
-   * @param email email de cadastro
-   * @returns status e mensagem da situacao
-   */
-  static async requestNewPassword(email: string): Promise<{ status: number; message: string; }> {
-    try {
-      const db = global.database;
-      const response = await User.byEmail(email);
-      if (response && response.length === 0) {
-        throw new Error("Email not found");
-      }
-      const user = response[0];
-      const code = Functions.generateRandomNumbers(5);
-      const valid = await db.select(NAME_TABLE_DB.NEW_PASSWORD.NAME, [user.user_id, 1], [NAME_TABLE_DB.NEW_PASSWORD.COLUMNS.USER + " = ?", NAME_TABLE_DB.NEW_PASSWORD.COLUMNS.STATUS + " = ?"]);
-      if (valid && valid.length > 0) {
-        throw new Error("you already have an open request, check your email");
-      }
-      const data = {
-        [NAME_TABLE_DB.NEW_PASSWORD.COLUMNS.USER]: user.user_id,
-        [NAME_TABLE_DB.NEW_PASSWORD.COLUMNS.TOKEN]: code,
-        [NAME_TABLE_DB.NEW_PASSWORD.COLUMNS.DATE]: new Date(),
-        [NAME_TABLE_DB.NEW_PASSWORD.COLUMNS.STATUS]: 1
-      };
-      await db.insert(NAME_TABLE_DB.NEW_PASSWORD.NAME, data);
-
-      await Mail.sendCodeNewPassword(email, user.user_name, String(code));
-      return { status: 200, message: "Code to reset password sent to your email" };
-    } catch (error) {
-      return { status: 500, message: error.message };
-    }
-  }
-
-
-  /**
-   * Atualizando senha
-   * @param code 
-   * @param password 
-   * @returns 
-   */
-  static async updatePassword(data: UpdatedPassword): Promise<{ status: number; message: string; }> {
-    try {
-      const { code, password } = data;
-      const db = global.database;
-      const valid = await db.select(NAME_TABLE_DB.NEW_PASSWORD.NAME, [code, 1], [NAME_TABLE_DB.NEW_PASSWORD.COLUMNS.TOKEN + " = ?", NAME_TABLE_DB.NEW_PASSWORD.COLUMNS.STATUS + " = ?"]);
-      if (valid && valid.length === 0) {
-        throw new Error("code not found or expired");
-      }
-      const user_id = valid[0].user;
-      const response = await User.updatePassword(password, user_id);
-      if (response === 0) {
-        throw new Error("Error updating password");
-      }
-      await db.update(NAME_TABLE_DB.NEW_PASSWORD.NAME, { [NAME_TABLE_DB.NEW_PASSWORD.COLUMNS.STATUS]: 2 }, [NAME_TABLE_DB.NEW_PASSWORD.COLUMNS.TOKEN + "="], [code]);
-      return { status: 200, message: "Updated successfully" };
-    } catch (error) {
-      return { status: 500, message: error.message };
-    }
-  }
-
-  /**
-   * Atulizar status da sessao
-   * @param session 
-   * @param status 
-   * @returns 
-   */
-  static async updateStatusSession(session: string, status: number): Promise<any> {
-    try {
-      const db = global.database;
-      return await db.update(NAME_TABLE_DB.SESSION.NAME, { [NAME_TABLE_DB.SESSION.COLUMNS.STATUS]: status }, [NAME_TABLE_DB.SESSION.COLUMNS.TOKEN + "="], [session]);
-    } catch (error) {
-      throw error;
     }
   }
 

@@ -2,9 +2,9 @@ import { Property } from "@tsed/common";
 
 export class Login {
   @Property()
-  email: string;
+  signature: string;
   @Property()
-  password: string;
+  address: string;
 }
 export class Register {
   @Property()
