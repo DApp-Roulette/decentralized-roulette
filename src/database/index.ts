@@ -17,4 +17,3 @@ export async function connect() {
     console.error('Unable to connect to the database:', error);
   }
 }
-

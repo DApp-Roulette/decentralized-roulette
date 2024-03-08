@@ -1,9 +1,8 @@
 import { $log } from "@tsed/common";
 
 import { Users } from "./Users";
-
 import { Messages } from "./Messages";
-
+import { MessageToSigns } from "./MessageToSigns";
 
 export default async function synchronizeDB() {
   try {
@@ -12,7 +11,9 @@ export default async function synchronizeDB() {
 
     await Messages.sync({ alter: true });
 
-    $log.info("Done synchronize DB")
+    await MessageToSigns.sync({ alter: true });
+
+    $log.info("Done synchronize DB");
   } catch (error) {
     $log.error(error.message)
   }

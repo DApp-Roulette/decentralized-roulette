@@ -1,14 +1,14 @@
-import * as EmailValidator from 'email-validator';
 import jwt from 'jsonwebtoken';
+import { ethers } from 'ethers';
 
-import { Login, Register, UpdatedPassword } from "../models/Auth";
+import { Login } from "../models/Auth";
 import { Functions } from "../functions";
-import { User } from "./User";
-
 import { getEnv } from '../config/env';
 
-const { JWT_KEY } = getEnv();
+import { MessageToSigns } from '../database/MessageToSigns';
+import { Users } from '../database/Users';
 
+const { JWT_KEY } = getEnv();
 
 export class ServiceAuth {
 
@@ -20,21 +20,19 @@ export class ServiceAuth {
     try {
       const session = Functions.generateRandomToken(20);
       const message = `Sign this message to validate your session\nSession:${session}`;
+      await MessageToSigns.create({ session, message, date_time: new Date });
       return { status: 200, message, session };
     } catch (error) {
       return { status: 500, message: error.message };
     }
   }
 
-
   static async authorization(session: string) {
     try {
       const token = session?.split(' ')[1];
       var decoded: any = jwt.verify(token, JWT_KEY);
-      let user = await User.byId(decoded?.userId);
-      if (user && user.length > 0) {
-        user = user[0];
-        return { status: 200, user: { id: user.user_id, name: user.user_name } };
+      if (decoded) {
+        return { status: 200, user: { id: decoded.user } };
       }
     } catch (error) {
       return { status: 500, message: error.message };
@@ -49,58 +47,33 @@ export class ServiceAuth {
    */
   static async login(data: Login) {
     try {
-      const response = await User.byEmail(data.address);
-      if (response && response.length > 0) {
-        const user = response[0];
-        const validPassword = await Functions.comparePasswords(data.password, user.user_password);
-        if (!validPassword) {
-          throw new Error("invalid password");
+      const { session, address, signature } = data;
+
+      const response = await MessageToSigns.findOne({ where: { session } });
+
+      if (response) {
+
+        const { message } = response.dataValues;
+        const verify = ethers.verifyMessage(message, signature);
+        if (!verify) {
+          throw new Error("It seems that it wasn't you who signed the message");
         }
 
-        const session = this.generateSession({ userId: user.user_id });
+        await MessageToSigns.destroy({ where: { session } });
 
-        return { status: 200, session };
+        const user = await Users.findOne({ where: { address } });
+
+        if (user) {
+          const session = this.generateSession({ user: user.id, address });
+          return { status: 200, session };
+        } else {
+          const user = await Users.create({ address, user_name: address, registration_date: new Date });
+          const { id } = user;
+          const session = this.generateSession({ user: id, address });
+          return { status: 200, session };
+        }
       } else {
         throw new Error("email not found");
-      }
-    } catch (error) {
-      return { status: 500, message: error.message };
-    }
-  }
-
-
-  /**
-   * Cria a conta do usuario
-   * @param data dados de cadastro do usuario
-   * @returns caso a conta seja criado com sucesso faz login e retorna status e sessao
-   */
-  static async register(data: Register) {
-    try {
-      if (!data.name) {
-        throw new Error("enter name first");
-      }
-      if (!data.email) {
-        throw new Error("enter email first");
-      }
-
-      if (!EmailValidator.validate(data.email)) {
-        throw new Error("Invalid email");
-      }
-      if (!data.password) {
-        throw new Error("enter password first");
-      }
-
-      const response = await User.byEmail(data.email);
-      if (response && response.length > 0) {
-        throw new Error("an account already uses this email");
-      }
-      const user = await User.save(data);
-      if (user.insertId) {
-        const session = this.generateSession({ userId: user.insertId });
-
-        return { status: 200, session };
-      } else {
-        throw new Error("Error saving to DB");
       }
     } catch (error) {
       return { status: 500, message: error.message };
