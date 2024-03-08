@@ -1,5 +1,6 @@
 import { DataTypes, Model } from 'sequelize';
 import { sequelize } from '.';
+import { Users } from './Users';
 
 interface MessagesAttributes {
   id?: number;
@@ -25,7 +26,11 @@ Messages.init(
     },
     userId: {
       type: DataTypes.BIGINT,
-      allowNull: false
+      allowNull: false,
+      references: {
+        model: 'Users',
+        key: 'id'
+      }
     },
     content: {
       type: DataTypes.TEXT,
@@ -42,4 +47,7 @@ Messages.init(
     timestamps: false
   }
 );
+
+Messages.belongsTo(Users, { foreignKey: 'userId' });
+
 export { Messages };
