@@ -29,17 +29,21 @@ async function socket() {
       if (session) {
         try {
           var decoded: any = jwt.verify(session, JWT_KEY);
-          if (message instanceof Buffer) {
-            message = JSON.parse(message?.toString());
-          }
-          if (message && message?.message) {
-            await Message.save({ user: decoded.userId, content: message?.message });
-            const senderIndex = clients.indexOf(ws);
-            clients.forEach((client, index) => {
-              if (index !== senderIndex) {
-                client.send(JSON.stringify({ event: "message", message }));
-              }
-            });
+          if (decoded.user) {
+
+            if (message instanceof Buffer) {
+              message = JSON.parse(message?.toString());
+            }
+
+            if (message && message?.message) {
+              await Message.save({ user: decoded.user, content: message?.message });
+              const senderIndex = clients.indexOf(ws);
+              clients.forEach((client, index) => {
+                if (index !== senderIndex) {
+                  client.send(JSON.stringify({ event: "message", message }));
+                }
+              });
+            }
           }
         } catch (error) {
           $log.error(error.mensagem);
@@ -101,7 +105,7 @@ async function bootstrap() {
     await socket();
 
     await connect();
-    
+
     await synchronizeDB();
 
   } catch (error) {
