@@ -1,6 +1,7 @@
 import { $log } from "@tsed/common";
 
 import { Messages } from "../database/Messages";
+import { Users } from "../database/Users";
 
 
 interface MessageData {
@@ -22,9 +23,14 @@ export class Message {
     try {
       const messages = await Messages.findAll({
         order: [['date_sent', 'DESC']],
-        limit: limit
+        limit: limit,
+        include: [{
+          model: Users,
+          attributes: ['user_name'],
+          required: true
+        }]
       });
-      return messages;
+      return { status: 200, messages };
     } catch (error) {
       $log.error(error.message);
     }
