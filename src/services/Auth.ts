@@ -32,7 +32,8 @@ export class ServiceAuth {
       const token = session?.split(' ')[1];
       var decoded: any = jwt.verify(token, JWT_KEY);
       if (decoded) {
-        return { status: 200, user: { id: decoded.user } };
+        const user = await Users.findByPk(decoded.user);
+        return { status: 200, user };
       }
     } catch (error) {
       return { status: 500, message: error.message };
