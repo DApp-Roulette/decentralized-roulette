@@ -3,6 +3,7 @@ import { $log } from "@tsed/common";
 import { Users } from "./Users";
 import { Messages } from "./Messages";
 import { MessageToSigns } from "./MessageToSigns";
+import { Games } from "./Games";
 
 export default async function synchronizeDB() {
   try {
@@ -12,6 +13,8 @@ export default async function synchronizeDB() {
     await Messages.sync({ alter: true });
 
     await MessageToSigns.sync({ alter: true });
+    
+    await Games.sync({ alter: true });
 
     $log.info("Done synchronize DB");
   } catch (error) {
