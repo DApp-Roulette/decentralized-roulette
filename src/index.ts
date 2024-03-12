@@ -46,13 +46,13 @@ async function socket() {
             }
           }
         } catch (error) {
-          $log.error(error.mensagem);
+          $log.error("error socket", error.mensagem);
         }
       }
     });
 
     ws.on("close", () => {
-      console.log("Cliente desconectado do servidor WebSocket");
+      $log.info("Cliente desconectado do servidor WebSocket");
     });
 
   });
