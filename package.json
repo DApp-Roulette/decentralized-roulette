@@ -1,7 +1,7 @@
 {
-  "name": "decentralized-roulette",
+  "name": "server-dapproulette",
   "version": "1.0.0",
-  "description": "Decentralized Roulette Server",
+  "description": "DApp Roulettee Server",
   "main": "dist/index.js",
   "scripts": {
     "build": "npm run tsc --declaration --emitDeclarationOnly",

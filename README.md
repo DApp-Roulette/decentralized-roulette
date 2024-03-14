@@ -1,4 +1,4 @@
-# Decentralized Roulette | Typescript | Node JS 
+# DApp Roulette | Typescript | Node JS 
 
 ```sh
 sudo yarn install       
